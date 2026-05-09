@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Station Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050810;
+    --bg2: #080d1a;
+    --bg3: #0d1428;
+    --panel: #0a1020;
+    --border: #1a2a4a;
+    --border2: #0f3060;
+    --cyan: #00e5ff;
+    --cyan2: #0099cc;
+    --gold: #ffd54f;
+    --gold2: #ff8f00;
+    --green: #69f0ae;
+    --red: #ff5252;
+    --purple: #ea80fc;
+    --orange: #ffab40;
+    --text: #c8d8f0;
+    --text2: #6890c0;
+    --glow-c: 0 0 8px #00e5ff88, 0 0 20px #00e5ff33;
+    --glow-g: 0 0 8px #ffd54f88, 0 0 20px #ffd54f33;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-head: 'Orbitron', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+
+  /* TOP BAR */
+  #top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border2);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  #top-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan2), transparent);
+  }
+  .title-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .game-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    text-shadow: var(--glow-c);
+  }
+  .currency-block {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+  .currency {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .currency-icon { font-size: 16px; }
+  .currency-val {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .currency-val.energy { color: var(--green); text-shadow: 0 0 8px #69f0ae88; }
+  .currency-val.cash { color: var(--gold); text-shadow: var(--glow-g); }
+  .currency-rate {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 1px;
+  }
+  .orbit-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .orbit-name {
+    font-family: var(--font-head);
+    font-size: 12px;
+    color: var(--cyan);
+    text-shadow: var(--glow-c);
+  }
+
+  /* MAIN AREA */
+  #main-area {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* PANELS */
+  .side-panel {
+    width: 230px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .side-panel.right {
+    border-right: none;
+    border-left: 1px solid var(--border);
+  }
+  .panel-title {
+    font-family: var(--font-head);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--cyan2);
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg3);
+    text-transform: uppercase;
+  }
+  .panel-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .panel-scroll::-webkit-scrollbar { width: 4px; }
+  .panel-scroll::-webkit-scrollbar-track { background: var(--bg); }
+  .panel-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* UPGRADE CARDS */
+  .upgrade-card {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .upgrade-card:hover { background: #0d1830; }
+  .upgrade-card.can-afford:hover { background: #0a1f35; }
+  .upgrade-card.disabled { opacity: 0.45; cursor: not-allowed; }
+  .upgrade-card.disabled:hover { background: transparent; }
+  .upg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .upg-name {
+    font-size: 11px;
+    color: var(--text);
+    font-family: var(--font-head);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .upg-count {
+    font-size: 11px;
+    color: var(--cyan2);
+    background: #0d1f35;
+    border: 1px solid var(--border2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .upg-desc {
+    font-size: 10px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  .upg-cost {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+  }
+  .cost-item { display: flex; align-items: center; gap: 3px; }
+  .cost-cash { color: var(--gold); }
+  .cost-energy { color: var(--green); }
+  .upg-effect {
+    font-size: 9px;
+    color: var(--cyan);
+    margin-top: 4px;
+  }
+  .buy-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s;
+  }
+  .upgrade-card.can-afford .buy-bar { background: var(--cyan2); }
+
+  /* CANVAS */
+  #canvas-wrap {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+  }
+  #mainCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* NPC VISITORS */
+  .visitor-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .visitor-icon { font-size: 16px; flex-shrink: 0; }
+  .visitor-info { flex: 1; }
+  .visitor-name { color: var(--text); margin-bottom: 2px; }
+  .visitor-rate { color: var(--gold); }
+  .visitor-timer { color: var(--text2); margin-top: 1px; }
+
+  /* LOG */
+  .log-item {
+    padding: 6px 12px;
+    border-bottom: 1px solid #0d1825;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text2);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .log-item.log-warn { color: var(--red); }
+  .log-item.log-good { color: var(--green); }
+  .log-item.log-info { color: var(--cyan2); }
+  .log-item.log-cash { color: var(--gold); }
+  .log-time { color: #304060; margin-right: 4px; font-size: 9px; }
+
+  /* BOTTOM BAR - ORBIT MIGRATION */
+  #bottom-bar {
+    background: var(--panel);
+    border-top: 1px solid var(--border2);
+    padding: 8px 12px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  #bottom-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan2), transparent);
+  }
+  .orbit-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+  }
+  .orbit-bar-inner::-webkit-scrollbar { height: 3px; }
+  .orbit-bar-inner::-webkit-scrollbar-thumb { background: var(--border2); }
+  .orbit-label {
+    font-family: var(--font-head);
+    font-size: 9px;
+    color: var(--text2);
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+  .orbit-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    min-width: 90px;
+    font-family: var(--font-mono);
+  }
+  .orbit-btn:hover:not(.orbit-current):not(.orbit-locked) {
+    border-color: var(--cyan2);
+    background: #0a1f35;
+  }
+  .orbit-btn.orbit-current {
+    border-color: var(--cyan);
+    background: #081a30;
+    cursor: default;
+    box-shadow: var(--glow-c);
+  }
+  .orbit-btn.orbit-locked { opacity: 0.4; cursor: not-allowed; }
+  .orbit-btn-icon { font-size: 18px; margin-bottom: 2px; }
+  .orbit-btn-name {
+    font-size: 9px;
+    color: var(--text);
+    font-family: var(--font-head);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+  .orbit-btn-cost { font-size: 8px; color: var(--text2); }
+  .orbit-btn.orbit-current .orbit-btn-name { color: var(--cyan); }
+  .orbit-btn-badge {
+    font-size: 8px;
+    color: var(--cyan);
+    background: #0d2040;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-top: 2px;
+  }
+
+  /* MODAL */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.active { display: flex; }
+  .modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 28px 32px;
+    max-width: 440px;
+    width: 90%;
+    box-shadow: 0 0 40px #00e5ff22;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-title {
+    font-family: var(--font-head);
+    font-size: 16px;
+    color: var(--cyan);
+    text-shadow: var(--glow-c);
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+  .modal-body {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .modal-body .modal-cost {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .modal-cost-row { display: flex; gap: 20px; margin-top: 4px; }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn {
+    padding: 8px 20px;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: #0d3060;
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .btn-primary:hover { background: #1a4070; box-shadow: var(--glow-c); }
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--border2);
+    color: var(--text2);
+  }
+  .btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+
+  /* EVENT ALERT */
+  #event-alert {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--bg2);
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 12px;
+    color: var(--red);
+    text-align: center;
+    z-index: 50;
+    opacity: 0;
+    transition: all 0.3s;
+    min-width: 300px;
+    box-shadow: 0 0 20px #ff525244;
+    pointer-events: none;
+  }
+  #event-alert.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #event-alert.good { color: var(--green); border-color: var(--green); box-shadow: 0 0 20px #69f0ae44; }
+
+  /* WIN SCREEN */
+  #win-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+  }
+  #win-screen.active { display: flex; }
+  .win-title {
+    font-family: var(--font-head);
+    font-size: 36px;
+    color: var(--purple);
+    text-shadow: 0 0 30px #ea80fc;
+    margin-bottom: 16px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  .win-sub {
+    font-size: 14px;
+    color: var(--text);
+    max-width: 500px;
+    line-height: 1.8;
+    margin-bottom: 30px;
+  }
+
+  /* NPC Section header */
+  .section-header {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text2);
+    padding: 6px 12px 4px;
+    text-transform: uppercase;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Stats strip in right panel */
+  .stat-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 12px;
+    font-size: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row-label { color: var(--text2); }
+  .stat-row-val { color: var(--text); }
+
+  #visitors-list, #log-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .empty-msg {
+    padding: 20px 12px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* tooltip */
+  .tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 20;
+  }
+  .orbit-btn:hover .tooltip { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="top-bar">
+  <div class="title-block">
+    <div class="game-title">⬡ SPACE STATION SIM</div>
+  </div>
+  <div class="currency-block">
+    <div class="currency">
+      <span class="currency-icon">⚡</span>
+      <div>
+        <div class="currency-val energy" id="energy-display">0</div>
+        <div class="currency-rate" id="energy-rate">+0/s</div>
+      </div>
+    </div>
+    <div class="currency">
+      <span class="currency-icon">💰</span>
+      <div>
+        <div class="currency-val cash" id="cash-display">0</div>
+        <div class="currency-rate" id="cash-rate">+0/s</div>
+      </div>
+    </div>
+  </div>
+  <div class="orbit-display">
+    <span id="orbit-icon">🌍</span>
+    <span>ORBITING</span>
+    <span class="orbit-name" id="orbit-name-top">EARTH</span>
+    <span>|</span>
+    <span id="npc-count-top">0 VISITORS</span>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div id="main-area">
+  <!-- LEFT PANEL: UPGRADES -->
+  <div class="side-panel">
+    <div class="panel-title">⬡ Station Upgrades</div>
+    <div class="panel-scroll" id="upgrade-list"></div>
+  </div>
+
+  <!-- CANVAS -->
+  <div id="canvas-wrap">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <!-- RIGHT PANEL: VISITORS + LOG -->
+  <div class="side-panel right">
+    <div class="panel-title">⬡ Station Status</div>
+    <div class="stat-strip">
+      <div class="stat-row"><span class="stat-row-label">MAX CAPACITY</span><span class="stat-row-val" id="stat-cap">3 NPCs</span></div>
+      <div class="stat-row"><span class="stat-row-label">DOCKING BAYS</span><span class="stat-row-val" id="stat-dock">1</span></div>
+      <div class="stat-row"><span class="stat-row-label">DEFENSE RATING</span><span class="stat-row-val" id="stat-def">0%</span></div>
+      <div class="stat-row"><span class="stat-row-label">ENERGY STORAGE</span><span class="stat-row-val" id="stat-storage">500</span></div>
+    </div>
+    <div class="section-header">👽 Active Visitors</div>
+    <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; min-height:0;">
+      <div id="visitors-list"></div>
+    </div>
+    <div class="section-header">📡 Station Log</div>
+    <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; min-height:0;">
+      <div id="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR: ORBIT MIGRATION -->
+<div id="bottom-bar">
+  <div class="orbit-bar-inner">
+    <div class="orbit-label">MIGRATE:</div>
+    <div id="orbit-buttons"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">CONFIRM MIGRATION</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" id="modal-cancel">CANCEL</button>
+      <button class="btn btn-primary" id="modal-confirm">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT ALERT -->
+<div id="event-alert"></div>
+
+<!-- WIN SCREEN -->
+<div id="win-screen">
+  <div class="win-title">🕳️ SINGULARITY ACHIEVED</div>
+  <div class="win-sub" id="win-text"></div>
+  <button class="btn btn-primary" onclick="restartGame()">RESTART SIMULATION</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════
+
+const ORBITS = [
+  { name:'Earth',         icon:'🌍', color:'#4fc3f7', energyBase:1,   energyPerCol:2,    desc:'Reflected solar energy harvested from low orbit', eventMult:1.0 },
+  { name:'Mars',          icon:'🔴', color:'#ef5350', energyBase:2,   energyPerCol:4,    desc:'Proximity to asteroid belt boosts mining yields', eventMult:1.1 },
+  { name:'Jupiter',       icon:'🟠', color:'#ffa726', energyBase:5,   energyPerCol:10,   desc:"Jupiter's magnetic field generates massive power", eventMult:1.2 },
+  { name:'Saturn',        icon:'🪐', color:'#d4ac6e', energyBase:12,  energyPerCol:24,   desc:"Mine Saturn's rings for exotic materials", eventMult:1.3 },
+  { name:'The Sun',       icon:'☀️', color:'#ffeb3b', energyBase:30,  energyPerCol:60,   desc:'Direct solar harvesting — extreme output', eventMult:1.5 },
+  { name:'Alpha Centauri',icon:'⭐', color:'#f48fb1', energyBase:80,  energyPerCol:160,  desc:'Binary star system doubles solar intake', eventMult:1.7 },
+  { name:'Andromeda',     icon:'🌌', color:'#ce93d8', energyBase:250, energyPerCol:500,  desc:'Galactic core energies fuel your reactors', eventMult:2.0 },
+  { name:'Black Hole',    icon:'🕳️', color:'#9c27b0', energyBase:800, energyPerCol:1600, desc:'Hawking radiation harvested from the event horizon', eventMult:2.5 },
+];
+
+const ORBIT_COSTS = [
+  { cash:0,      energy:0       },  // Earth - start
+  { cash:500,    energy:200     },  // Mars
+  { cash:2500,   energy:1000    },  // Jupiter
+  { cash:10000,  energy:4000    },  // Saturn
+  { cash:40000,  energy:15000   },  // Sun
+  { cash:150000, energy:60000   },  // Alpha Centauri
+  { cash:600000, energy:250000  },  // Andromeda
+  { cash:2500000,energy:1000000 },  // Black Hole
+];
+
+const NPC_TYPES = [
+  { name:'Zorthian Trader',   icon:'👽', cashOnArrive:25, cashPerSec:3 },
+  { name:'Xeelian Diplomat',  icon:'🫎', cashOnArrive:50, cashPerSec:5 },
+  { name:'Graxian Miner',     icon:'🤖', cashOnArrive:15, cashPerSec:2 },
+  { name:'Vortex Pilgrim',    icon:'🧿', cashOnArrive:80, cashPerSec:8 },
+  { name:'Nebula Merchant',   icon:'🪬', cashOnArrive:40, cashPerSec:4 },
+  { name:'Dark Matter Scout', icon:'🌀', cashOnArrive:120, cashPerSec:12},
+];
+
+const UPGRADES = [
+  {
+    id:'collector', name:'SOLAR COLLECTOR', icon:'☀',
+    desc:'Harvests energy from your current orbit.',
+    effect:'+ energy/s (scales with orbit)',
+    baseCostCash:75, baseCostEnergy:0, costMultCash:1.75, costMultEnergy:1,
+    maxCount:50
+  },
+  {
+    id:'habitat', name:'HABITAT MODULE', icon:'🏠',
+    desc:'Expands living quarters for alien visitors.',
+    effect:'+5 max NPC capacity',
+    baseCostCash:200, baseCostEnergy:0, costMultCash:1.8, costMultEnergy:1,
+    maxCount:30
+  },
+  {
+    id:'docking', name:'DOCKING BAY', icon:'🛸',
+    desc:'New bay for ships to dock. Raises arrival rate.',
+    effect:'+1 docking slot, faster arrivals',
+    baseCostCash:150, baseCostEnergy:0, costMultCash:1.9, costMultEnergy:1,
+    maxCount:20
+  },
+  {
+    id:'shop', name:'MARKET UNIT', icon:'🏪',
+    desc:'Alien commerce increases per-visitor revenue.',
+    effect:'+10 cash on arrival per NPC, +2 cash/s per NPC',
+    baseCostCash:300, baseCostEnergy:0, costMultCash:1.85, costMultEnergy:1,
+    maxCount:20
+  },
+  {
+    id:'defense', name:'DEFENSE TURRET', icon:'🔫',
+    desc:'Shields the station from pirate raids & meteors.',
+    effect:'+15% event damage reduction',
+    baseCostCash:0, baseCostEnergy:350, costMultCash:1, costMultEnergy:1.9,
+    maxCount:6
+  },
+  {
+    id:'reactor', name:'FUSION REACTOR', icon:'⚛',
+    desc:'Boosts energy output and increases storage.',
+    effect:'+5 energy/s flat, +500 max energy',
+    baseCostCash:100, baseCostEnergy:500, costMultCash:1.7, costMultEnergy:2.0,
+    maxCount:15
+  },
+  {
+    id:'hull', name:'HULL EXPANSION', icon:'🔩',
+    desc:'Enlarges the station structure. Required for large builds.',
+    effect:'+2 max NPCs, station grows visually',
+    baseCostCash:600, baseCostEnergy:200, costMultCash:2.0, costMultEnergy:2.0,
+    maxCount:10
+  },
+];
+
+const EVENTS = [
+  { id:'meteor',  name:'METEOR SHOWER',    icon:'☄️',  type:'bad',  msg:'Meteors strike the hull! Cash lost.',           cashLoss:true,  energyLoss:false, baseDmg:80  },
+  { id:'pirate',  name:'PIRATE RAID',      icon:'🏴',  type:'bad',  msg:'Pirates demand tribute! Cash stolen.',         cashLoss:true,  energyLoss:false, baseDmg:120 },
+  { id:'flare',   name:'SOLAR FLARE',      icon:'🔆',  type:'bad',  msg:'Solar flare disrupts energy systems!',         cashLoss:false, energyLoss:true,  baseDmg:150 },
+  { id:'bonus',   name:'TRADE CARAVAN',    icon:'✨',  type:'good', msg:'A trade caravan boosts station revenue!',      cashBonus:true, baseDmg:0 },
+  { id:'surge',   name:'ENERGY SURGE',     icon:'⚡',  type:'good', msg:'Cosmic energy surge charges your reactors!',  energyBonus:true, baseDmg:0 },
+];
+
+// ═══════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════
+
+let G = {
+  cash: 100,
+  energy: 50,
+  maxEnergy: 500,
+  orbitIndex: 0,
+  ticks: 0,
+  gameTick: 0,
+
+  // Module counts
+  modules: { collector:0, habitat:0, docking:1, shop:0, defense:0, reactor:0, hull:1 },
+
+  npcs: [],
+  npcIdCounter: 0,
+  nextNpcIn: 15,  // ticks until next NPC
+
+  log: [],
+  pendingModal: null,
+  gameWon: false,
+};
+
+function maxNPCs() {
+  return 3 + G.modules.habitat * 5 + G.modules.hull * 2;
+}
+function dockSlots() { return G.modules.docking; }
+function energyRate() {
+  const orb = ORBITS[G.orbitIndex];
+  return orb.energyBase + G.modules.collector * orb.energyPerCol + G.modules.reactor * 5;
+}
+function cashRate() {
+  let r = 0;
+  for (const npc of G.npcs) r += npc.cashPerSec;
+  return r;
+}
+function defenseRating() { return Math.min(90, G.modules.defense * 15); }
+function upgradeCost(upg, count) {
+  const c = Math.ceil(upg.baseCostCash * Math.pow(upg.costMultCash, count));
+  const e = Math.ceil(upg.baseCostEnergy * Math.pow(upg.costMultEnergy, count));
+  return { cash: upg.baseCostCash > 0 ? c : 0, energy: upg.baseCostEnergy > 0 ? e : 0 };
+}
+
+// ═══════════════════════════════════════════════════════
+//  CANVAS RENDERING
+// ═══════════════════════════════════════════════════════
+
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+let particles = [];
+let npcShips = [];
+let orbitAngle = 0;
+let stationPulse = 0;
+
+function initCanvas() {
+  resize();
+  generateStars();
+  window.addEventListener('resize', () => { resize(); generateStars(); });
+  requestAnimationFrame(renderLoop);
+}
+
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+
+function generateStars() {
+  stars = [];
+  const count = Math.floor(canvas.width * canvas.height / 2500);
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.2,
+      alpha: Math.random() * 0.8 + 0.2,
+      twinkle: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.02 + 0.005,
+    });
+  }
+}
+
+function renderLoop(ts) {
+  requestAnimationFrame(renderLoop);
+  const dt = 1/60;
+  orbitAngle += 0.004;
+  stationPulse += 0.05;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background gradient
+  const bgGrad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width*0.7);
+  bgGrad.addColorStop(0, '#0a1020');
+  bgGrad.addColorStop(1, '#030508');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawStars(dt);
+  drawOrbitalBody();
+  drawStation();
+  drawNPCShips(dt);
+  drawParticles(dt);
+}
+
+function drawStars(dt) {
+  for (const s of stars) {
+    s.twinkle += s.speed;
+    const alpha = s.alpha * (0.6 + 0.4 * Math.sin(s.twinkle));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
+    ctx.fill();
+  }
+}
+
+function drawOrbitalBody() {
+  const orb = ORBITS[G.orbitIndex];
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const dist = Math.min(canvas.width, canvas.height) * 0.36;
+  const bx = cx + Math.cos(orbitAngle) * dist;
+  const by = cy + Math.sin(orbitAngle) * dist * 0.4;
+  const radius = getOrbitalBodyRadius();
+
+  // Draw orbit path
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, dist, dist * 0.4, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(100,160,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  if (G.orbitIndex === 0) drawEarth(bx, by, radius);
+  else if (G.orbitIndex === 1) drawMars(bx, by, radius);
+  else if (G.orbitIndex === 2) drawJupiter(bx, by, radius);
+  else if (G.orbitIndex === 3) drawSaturn(bx, by, radius);
+  else if (G.orbitIndex === 4) drawSun(bx, by, radius);
+  else if (G.orbitIndex === 5) drawStar(bx, by, radius, '#f48fb1');
+  else if (G.orbitIndex === 6) drawGalaxy(bx, by, radius);
+  else if (G.orbitIndex === 7) drawBlackHole(bx, by, radius);
+}
+
+function getOrbitalBodyRadius() {
+  const sizes = [30, 22, 38, 35, 50, 28, 42, 25];
+  return sizes[G.orbitIndex];
+}
+
+function drawEarth(x, y, r) {
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.1, x, y, r);
+  g.addColorStop(0, '#5ab4e8');
+  g.addColorStop(0.5, '#2970a0');
+  g.addColorStop(1, '#1a4060');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  // continents
+  ctx.fillStyle = '#3a7a3a';
+  ctx.beginPath(); ctx.ellipse(x-6, y-4, 8, 6, -0.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+5, y+3, 6, 5, 0.3, 0, Math.PI*2); ctx.fill();
+  // atmosphere glow
+  const ag = ctx.createRadialGradient(x, y, r*0.9, x, y, r*1.3);
+  ag.addColorStop(0, 'rgba(100,180,255,0.2)');
+  ag.addColorStop(1, 'rgba(100,180,255,0)');
+  ctx.beginPath(); ctx.arc(x, y, r*1.3, 0, Math.PI*2);
+  ctx.fillStyle = ag; ctx.fill();
+}
+
+function drawMars(x, y, r) {
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.1, x, y, r);
+  g.addColorStop(0, '#ef8070'); g.addColorStop(1, '#8b3020');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = 'rgba(200,150,130,0.5)';
+  ctx.beginPath(); ctx.ellipse(x+3, y-5, 5, 4, 0.4, 0, Math.PI*2); ctx.fill();
+}
+
+function drawJupiter(x, y, r) {
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.1, x, y, r);
+  g.addColorStop(0, '#ffcc88'); g.addColorStop(1, '#c0783a');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  // bands
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.ellipse(x, y + i*7, r, 3, 0, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${i%2===0?'180,120,60':'220,180,100'},0.3)`; ctx.fill();
+  }
+  // great red spot
+  ctx.beginPath(); ctx.ellipse(x+5, y+4, 6, 4, 0.2, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(200,80,60,0.6)'; ctx.fill();
+}
+
+function drawSaturn(x, y, r) {
+  // Rings behind
+  ctx.beginPath(); ctx.ellipse(x, y, r*2.0, r*0.4, 0, Math.PI, Math.PI*2);
+  ctx.strokeStyle = 'rgba(200,180,120,0.5)'; ctx.lineWidth = 6; ctx.stroke();
+  // Planet
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.1, x, y, r);
+  g.addColorStop(0, '#e8d090'); g.addColorStop(1, '#a07840');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  // Rings in front
+  ctx.beginPath(); ctx.ellipse(x, y, r*2.0, r*0.4, 0, 0, Math.PI);
+  ctx.strokeStyle = 'rgba(200,180,120,0.5)'; ctx.lineWidth = 6; ctx.stroke();
+}
+
+function drawSun(x, y, r) {
+  // Outer glow
+  for (let i = 3; i >= 0; i--) {
+    const ag = ctx.createRadialGradient(x, y, r, x, y, r*(1.5+i*0.5));
+    ag.addColorStop(0, `rgba(255,200,50,${0.15-i*0.03})`);
+    ag.addColorStop(1, 'rgba(255,200,50,0)');
+    ctx.beginPath(); ctx.arc(x, y, r*(1.5+i*0.5), 0, Math.PI*2);
+    ctx.fillStyle = ag; ctx.fill();
+  }
+  // Corona rays
+  ctx.save();
+  ctx.translate(x, y);
+  for (let i = 0; i < 12; i++) {
+    ctx.rotate(Math.PI*2/12 + orbitAngle*0.3);
+    ctx.beginPath(); ctx.moveTo(r*0.9, 0); ctx.lineTo(r*1.6, 0);
+    ctx.strokeStyle = 'rgba(255,220,80,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+  }
+  ctx.restore();
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.1, x, y, r);
+  g.addColorStop(0, '#fffaaa'); g.addColorStop(0.5,'#ffcc00'); g.addColorStop(1, '#ff8800');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+}
+
+function drawStar(x, y, r, color) {
+  const ag = ctx.createRadialGradient(x, y, 0, x, y, r*2);
+  ag.addColorStop(0, color+'88'); ag.addColorStop(1, color+'00');
+  ctx.beginPath(); ctx.arc(x, y, r*2, 0, Math.PI*2); ctx.fillStyle = ag; ctx.fill();
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, 1, x, y, r);
+  g.addColorStop(0, '#fff'); g.addColorStop(0.4, color); g.addColorStop(1, '#8050a0');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fillStyle = g; ctx.fill();
+  // companion star
+  const cx2 = x + r*2.5 + Math.cos(orbitAngle*3)*r*0.5;
+  const cy2 = y + Math.sin(orbitAngle*3)*r*0.3;
+  ctx.beginPath(); ctx.arc(cx2, cy2, r*0.5, 0, Math.PI*2);
+  ctx.fillStyle = '#ffe0f0'; ctx.fill();
+}
+
+function drawGalaxy(x, y, r) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(orbitAngle*0.1);
+  for (let arm = 0; arm < 3; arm++) {
+    ctx.save(); ctx.rotate(arm * Math.PI*2/3);
+    for (let i = 0; i < 20; i++) {
+      const t = i / 20;
+      const angle2 = t * Math.PI * 2;
+      const dist2 = t * r * 1.4;
+      const bx = Math.cos(angle2) * dist2;
+      const by = Math.sin(angle2) * dist2 * 0.5;
+      ctx.beginPath(); ctx.arc(bx, by, (1-t)*3+0.5, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(200,150,255,${0.8-t*0.6})`; ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(0, 0, r*0.3, 0, Math.PI*2);
+  const g = ctx.createRadialGradient(0,0,0,0,0,r*0.3);
+  g.addColorStop(0,'#fff'); g.addColorStop(1,'#cc88ff');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.restore();
+}
+
+function drawBlackHole(x, y, r) {
+  // Accretion disk
+  for (let i = 0; i < 3; i++) {
+    const diskRad = r*(2.5-i*0.4);
+    const ag = ctx.createRadialGradient(x, y, r*1.2+i*4, x, y, diskRad);
+    ag.addColorStop(0, `rgba(180,60,255,${0.4-i*0.1})`);
+    ag.addColorStop(0.5, `rgba(255,120,0,${0.2-i*0.05})`);
+    ag.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(x, y, diskRad, 0, Math.PI*2);
+    ctx.fillStyle = ag; ctx.fill();
+  }
+  // Lensing ring
+  ctx.beginPath(); ctx.arc(x, y, r*1.5, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(150,80,255,0.6)'; ctx.lineWidth = 3; ctx.stroke();
+  // Event horizon - absolute black
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = '#000'; ctx.fill();
+  // Photon sphere glow
+  const photon = ctx.createRadialGradient(x, y, r, x, y, r*1.15);
+  photon.addColorStop(0, 'rgba(180,60,255,0.8)');
+  photon.addColorStop(1, 'rgba(180,60,255,0)');
+  ctx.beginPath(); ctx.arc(x, y, r*1.15, 0, Math.PI*2);
+  ctx.fillStyle = photon; ctx.fill();
+}
+
+function drawStation() {
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const m = G.modules;
+  const scale = 1 + m.hull * 0.12 + m.habitat * 0.04 + m.reactor * 0.03;
+  const pulse = Math.sin(stationPulse) * 0.5 + 0.5;
+
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
+
+  // Core glow
+  const cg = ctx.createRadialGradient(0, 0, 5, 0, 0, 35 + pulse*5);
+  cg.addColorStop(0, 'rgba(0,229,255,0.3)');
+  cg.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.beginPath(); ctx.arc(0, 0, 35+pulse*5, 0, Math.PI*2);
+  ctx.fillStyle = cg; ctx.fill();
+
+  // Draw solar panel arms (one per collector, max 8)
+  const cols = Math.min(m.collector, 8);
+  for (let i = 0; i < cols; i++) {
+    const angle = (i / Math.max(cols,1)) * Math.PI * 2;
+    const armLen = 30 + i * 3;
+    ctx.save(); ctx.rotate(angle);
+    ctx.strokeStyle = '#00b8d4'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(armLen, 0); ctx.stroke();
+    // Panel
+    ctx.fillStyle = '#0d47a1'; ctx.strokeStyle = '#40c4ff'; ctx.lineWidth = 1;
+    ctx.fillRect(armLen, -8, 18, 16); ctx.strokeRect(armLen, -8, 18, 16);
+    ctx.fillStyle = '#1565c0';
+    ctx.fillRect(armLen+3, -6, 5, 12); ctx.fillRect(armLen+10, -6, 5, 12);
+    ctx.restore();
+  }
+
+  // Docking arms (one per bay, max 6)
+  const docks = Math.min(m.docking, 6);
+  for (let i = 0; i < docks; i++) {
+    const angle = (i / Math.max(docks,1)) * Math.PI * 2 + Math.PI/docks;
+    ctx.save(); ctx.rotate(angle);
+    ctx.strokeStyle = '#607d8b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(40, 0); ctx.stroke();
+    // Platform
+    ctx.fillStyle = '#1a2a3a'; ctx.strokeStyle = '#546e7a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(38, -7, 14, 14); ctx.fill(); ctx.stroke();
+    // Dock light
+    ctx.beginPath(); ctx.arc(45, -7, 2.5, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,255,150,${0.5 + 0.5*Math.sin(stationPulse + i)})`; ctx.fill();
+    ctx.restore();
+  }
+
+  // Habitat rings
+  const habs = Math.min(m.habitat, 5);
+  for (let i = 0; i < habs; i++) {
+    const rr = 22 + i * 10;
+    ctx.beginPath();
+    ctx.arc(0, 0, rr, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(100,160,255,${0.4-i*0.06})`; ctx.lineWidth = 4+i; ctx.stroke();
+    // Ring segments
+    for (let j = 0; j < 8; j++) {
+      const a = (j/8)*Math.PI*2;
+      ctx.beginPath(); ctx.arc(0,0,rr,a,a+0.25);
+      ctx.strokeStyle = `rgba(150,200,255,0.6)`; ctx.lineWidth = 6+i; ctx.stroke();
+    }
+  }
+
+  // Defense turrets
+  const turrets = Math.min(m.defense, 6);
+  for (let i = 0; i < turrets; i++) {
+    const angle = (i / Math.max(turrets,1)) * Math.PI*2 + Math.PI/4;
+    const td = 28;
+    const tx = Math.cos(angle) * td;
+    const ty = Math.sin(angle) * td;
+    ctx.save(); ctx.translate(tx, ty); ctx.rotate(angle + Math.PI/2);
+    ctx.fillStyle = '#37474f'; ctx.strokeStyle = '#ff5252'; ctx.lineWidth = 1;
+    ctx.fillRect(-4, -4, 8, 10); ctx.strokeRect(-4, -4, 8, 10);
+    ctx.fillStyle = '#ff5252';
+    ctx.fillRect(-1.5, -6, 3, 4);
+    ctx.restore();
+  }
+
+  // Reactors
+  const reacts = Math.min(m.reactor, 6);
+  for (let i = 0; i < reacts; i++) {
+    const angle = (i / Math.max(reacts,1)) * Math.PI*2 + Math.PI*0.15;
+    const rd = 16;
+    const rx = Math.cos(angle) * rd;
+    const ry = Math.sin(angle) * rd;
+    const rg = ctx.createRadialGradient(rx, ry, 2, rx, ry, 8);
+    rg.addColorStop(0, 'rgba(100,255,100,0.8)');
+    rg.addColorStop(1, 'rgba(100,255,100,0)');
+    ctx.beginPath(); ctx.arc(rx, ry, 8, 0, Math.PI*2); ctx.fillStyle = rg; ctx.fill();
+    ctx.beginPath(); ctx.arc(rx, ry, 4, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(150,255,150,${0.6+0.4*pulse})`; ctx.fill();
+  }
+
+  // CORE HUB
+  ctx.rotate(stationPulse * 0.1);
+  // Outer ring
+  ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(0,229,255,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+  // Core body
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i/8)*Math.PI*2;
+    const rr2 = i%2===0 ? 14 : 10;
+    if (i===0) ctx.moveTo(Math.cos(a)*rr2, Math.sin(a)*rr2);
+    else ctx.lineTo(Math.cos(a)*rr2, Math.sin(a)*rr2);
+  }
+  ctx.closePath();
+  const coreG = ctx.createRadialGradient(-3,-3,1,0,0,14);
+  coreG.addColorStop(0,'#90caf9'); coreG.addColorStop(1,'#0d2040');
+  ctx.fillStyle = coreG; ctx.fill();
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Inner glow
+  ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2);
+  ctx.fillStyle = `rgba(0,229,255,${0.3+0.3*pulse})`; ctx.fill();
+
+  // Shop modules (small squares attached to core)
+  const shops = Math.min(m.shop, 4);
+  for (let i = 0; i < shops; i++) {
+    const angle = (i/4)*Math.PI*2 + Math.PI/8;
+    const sx = Math.cos(angle)*12, sy = Math.sin(angle)*12;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(angle);
+    ctx.fillStyle = '#ff8f00'; ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 1;
+    ctx.fillRect(-3,-3,6,6); ctx.strokeRect(-3,-3,6,6);
+    ctx.restore();
+  }
+
+  ctx.restore(); // main station translate/scale
+
+  // Station label
+  ctx.font = `bold 11px 'Orbitron'`;
+  ctx.fillStyle = 'rgba(0,229,255,0.7)';
+  ctx.textAlign = 'center';
+  ctx.fillText('STATION ALPHA', cx, cy - 65 * scale - 10);
+}
+
+function drawNPCShips(dt) {
+  for (let i = npcShips.length - 1; i >= 0; i--) {
+    const s = npcShips[i];
+    s.t += dt * s.speed;
+    if (s.t > 1) { npcShips.splice(i,1); continue; }
+    const x = s.startX + (s.endX - s.startX) * easeInOut(s.t);
+    const y = s.startY + (s.endY - s.startY) * easeInOut(s.t);
+    ctx.save(); ctx.translate(x, y);
+    const angle = Math.atan2(s.endY - s.startY, s.endX - s.startX);
+    ctx.rotate(angle);
+    // Ship body
+    ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(-5,5); ctx.lineTo(-3,0); ctx.lineTo(-5,-5); ctx.closePath();
+    ctx.fill();
+    // Engine glow
+    ctx.beginPath(); ctx.arc(-4, 0, 3, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,200,255,${0.6*(1-s.t)})`; ctx.fill();
+    ctx.restore();
+  }
+}
+
+function spawnNPCShip(npc) {
+  const cx = canvas.width/2, cy = canvas.height/2;
+  const edge = Math.random() < 0.5;
+  const sx = edge ? (Math.random()<0.5 ? -20 : canvas.width+20) : Math.random()*canvas.width;
+  const sy = edge ? Math.random()*canvas.height : (Math.random()<0.5 ? -20 : canvas.height+20);
+  npcShips.push({
+    startX:sx, startY:sy, endX:cx+Math.random()*40-20, endY:cy+Math.random()*40-20,
+    t:0, speed:0.4+Math.random()*0.3,
+    color: ['#00e5ff','#69f0ae','#ffd54f','#ea80fc','#ff7043'][Math.floor(Math.random()*5)]
+  });
+}
+
+function drawParticles(dt) {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    if (p.life <= 0) { particles.splice(i,1); continue; }
+    const alpha = p.life / p.maxLife;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * alpha, 0, Math.PI*2);
+    ctx.fillStyle = p.color.replace('1)', `${alpha})`); ctx.fill();
+  }
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 60 + 20;
+    particles.push({
+      x, y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed,
+      r:3+Math.random()*3, life:0.8+Math.random()*0.5, maxLife:1.3,
+      color:`rgba(${color},1)`
+    });
+  }
+}
+
+function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════════════
+
+function gameTick() {
+  if (G.gameWon) return;
+  G.ticks++;
+
+  // Energy income
+  const er = energyRate();
+  G.energy = Math.min(G.maxEnergy, G.energy + er);
+
+  // Cash income from NPCs
+  for (const npc of G.npcs) {
+    G.cash += npc.cashPerSec;
+    npc.timeLeft -= 1;
+  }
+
+  // Remove NPCs whose time is up
+  const leaving = G.npcs.filter(n => n.timeLeft <= 0);
+  for (const n of leaving) {
+    addLog(`${n.icon} ${n.name} departed.`, 'info');
+  }
+  G.npcs = G.npcs.filter(n => n.timeLeft > 0);
+
+  // NPC arrivals
+  G.nextNpcIn--;
+  if (G.nextNpcIn <= 0) {
+    if (G.npcs.length < maxNPCs()) {
+      spawnNPC();
+    }
+    const interval = Math.max(5, 20 - G.modules.docking * 2);
+    G.nextNpcIn = interval + Math.floor(Math.random() * interval);
+  }
+
+  // Random events (check every 30 ticks)
+  if (G.ticks % 30 === 0) {
+    const chance = 0.12 * ORBITS[G.orbitIndex].eventMult;
+    if (Math.random() < chance) triggerRandomEvent();
+  }
+
+  // Win condition: reached black hole
+  if (G.orbitIndex === ORBITS.length - 1 && G.modules.hull >= 5 && G.modules.collector >= 10) {
+    if (!G.gameWon) winGame();
+  }
+
+  updateUI();
+}
+
+function spawnNPC() {
+  const type = NPC_TYPES[Math.floor(Math.random() * NPC_TYPES.length)];
+  const bonusCash = G.modules.shop * 10;
+  const bonusRate = G.modules.shop * 2;
+  const arrival = type.cashOnArrive + bonusCash;
+  G.cash += arrival;
+
+  const npc = {
+    id: G.npcIdCounter++,
+    name: type.name,
+    icon: type.icon,
+    cashPerSec: type.cashPerSec + bonusRate,
+    timeLeft: 30 + Math.floor(Math.random() * 60),
+    maxTime: 30 + Math.floor(Math.random() * 60),
+  };
+  G.npcs.push(npc);
+  spawnNPCShip(npc);
+  spawnParticles(canvas.width/2, canvas.height/2, '0,229,255', 8);
+  addLog(`${npc.icon} ${npc.name} arrived! (+${fmt(arrival)} 💰)`, 'cash');
+}
+
+function triggerRandomEvent() {
+  const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  const defense = defenseRating() / 100;
+  const orbitMult = 1 + G.orbitIndex * 0.3;
+
+  if (ev.type === 'bad') {
+    const dmg = Math.floor(ev.baseDmg * orbitMult * (1 - defense));
+    if (ev.cashLoss) {
+      const lost = Math.min(G.cash, dmg);
+      G.cash -= lost;
+      showAlert(`${ev.icon} ${ev.name}: -${fmt(lost)} 💰 ${defense>0?`(${Math.round(defense*100)}% blocked)`:''}`, 'bad');
+      addLog(`${ev.icon} ${ev.name}: -${fmt(lost)} 💰`, 'warn');
+    }
+    if (ev.energyLoss) {
+      const lost = Math.min(G.energy, dmg);
+      G.energy -= lost;
+      showAlert(`${ev.icon} ${ev.name}: -${fmt(lost)} ⚡`, 'bad');
+      addLog(`${ev.icon} ${ev.name}: -${fmt(lost)} ⚡`, 'warn');
+    }
+  } else {
+    if (ev.cashBonus) {
+      const bonus = Math.floor(100 * orbitMult);
+      G.cash += bonus;
+      showAlert(`${ev.icon} ${ev.name}: +${fmt(bonus)} 💰`, 'good');
+      addLog(`${ev.icon} ${ev.name}: +${fmt(bonus)} 💰`, 'good');
+    }
+    if (ev.energyBonus) {
+      const bonus = Math.floor(150 * orbitMult);
+      G.energy = Math.min(G.maxEnergy, G.energy + bonus);
+      showAlert(`${ev.icon} ${ev.name}: +${fmt(bonus)} ⚡`, 'good');
+      addLog(`${ev.icon} ${ev.name}: +${fmt(bonus)} ⚡`, 'good');
+    }
+  }
+}
+
+function winGame() {
+  G.gameWon = true;
+  const ws = document.getElementById('win-screen');
+  document.getElementById('win-text').innerHTML =
+    `You have brought <strong>Station Alpha</strong> to the event horizon of a Black Hole,
+    harnessing Hawking radiation to power a megastructure beyond imagining.<br><br>
+    After ${fmt(G.ticks)} ticks and ${fmt(Math.floor(G.cash))} credits earned,
+    your civilization has transcended the stars. <br><br>
+    <span style="color:var(--purple)">The singularity is yours.</span>`;
+  ws.classList.add('active');
+}
+
+function restartGame() {
+  G = {
+    cash:100, energy:50, maxEnergy:500, orbitIndex:0, ticks:0, gameTick:0,
+    modules:{ collector:0, habitat:0, docking:1, shop:0, defense:0, reactor:0, hull:1 },
+    npcs:[], npcIdCounter:0, nextNpcIn:15, log:[], pendingModal:null, gameWon:false,
+  };
+  npcShips = []; particles = [];
+  document.getElementById('win-screen').classList.remove('active');
+  buildUpgradeList();
+  buildOrbitButtons();
+  addLog('New simulation started.', 'info');
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPGRADE SYSTEM
+// ═══════════════════════════════════════════════════════
+
+function buildUpgradeList() {
+  const list = document.getElementById('upgrade-list');
+  list.innerHTML = '';
+  for (const upg of UPGRADES) {
+    const card = document.createElement('div');
+    card.className = 'upgrade-card';
+    card.id = 'upg-' + upg.id;
+    card.innerHTML = `
+      <div class="upg-header">
+        <span class="upg-name">${upg.icon} ${upg.name}</span>
+        <span class="upg-count" id="cnt-${upg.id}">0</span>
+      </div>
+      <div class="upg-desc">${upg.desc}</div>
+      <div class="upg-cost" id="cost-${upg.id}"></div>
+      <div class="upg-effect">${upg.effect}</div>
+      <div class="buy-bar"></div>
+    `;
+    card.addEventListener('click', () => buyUpgrade(upg.id));
+    list.appendChild(card);
+  }
+  updateUpgradeCards();
+}
+
+function updateUpgradeCards() {
+  for (const upg of UPGRADES) {
+    const count = G.modules[upg.id] || 0;
+    const card = document.getElementById('upg-' + upg.id);
+    if (!card) continue;
+    const cnt = document.getElementById('cnt-' + upg.id);
+    const costEl = document.getElementById('cost-' + upg.id);
+    if (count >= upg.maxCount) {
+      cnt.textContent = 'MAX';
+      costEl.innerHTML = '<span style="color:var(--cyan2)">MAXED OUT</span>';
+      card.classList.add('disabled');
+      card.classList.remove('can-afford');
+      continue;
+    }
+    const cost = upgradeCost(upg, count);
+    cnt.textContent = count;
+    let costHTML = '';
+    if (cost.cash > 0) costHTML += `<span class="cost-item cost-cash">💰 ${fmt(cost.cash)}</span>`;
+    if (cost.energy > 0) costHTML += `<span class="cost-item cost-energy">⚡ ${fmt(cost.energy)}</span>`;
+    costEl.innerHTML = costHTML;
+    const canAfford = G.cash >= cost.cash && G.energy >= cost.energy;
+    card.classList.toggle('can-afford', canAfford);
+    card.classList.toggle('disabled', false);
+  }
+}
+
+function buyUpgrade(id) {
+  if (G.gameWon) return;
+  const upg = UPGRADES.find(u => u.id === id);
+  if (!upg) return;
+  const count = G.modules[id] || 0;
+  if (count >= upg.maxCount) return;
+  const cost = upgradeCost(upg, count);
+  if (G.cash < cost.cash || G.energy < cost.energy) {
+    showAlert('⚠ Insufficient resources!', 'bad');
+    return;
+  }
+  G.cash -= cost.cash;
+  G.energy -= cost.energy;
+  G.modules[id] = count + 1;
+  if (upg.id === 'reactor') G.maxEnergy += 500;
+  spawnParticles(canvas.width/2, canvas.height/2, '0,229,255', 12);
+  addLog(`Upgraded: ${upg.icon} ${upg.name} → Lv.${G.modules[id]}`, 'good');
+  updateUpgradeCards();
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ORBIT MIGRATION
+// ═══════════════════════════════════════════════════════
+
+function buildOrbitButtons() {
+  const container = document.getElementById('orbit-buttons');
+  container.style.display = 'flex';
+  container.style.gap = '8px';
+  container.innerHTML = '';
+  for (let i = 0; i < ORBITS.length; i++) {
+    const orb = ORBITS[i];
+    const cost = ORBIT_COSTS[i];
+    const btn = document.createElement('div');
+    btn.className = 'orbit-btn';
+    btn.id = 'orbit-btn-' + i;
+    const costText = i === 0 ? 'Starting orbit' : `💰${fmtShort(cost.cash)} ⚡${fmtShort(cost.energy)}`;
+    btn.innerHTML = `
+      <span class="orbit-btn-icon">${orb.icon}</span>
+      <span class="orbit-btn-name">${orb.name.toUpperCase()}</span>
+      <span class="orbit-btn-cost">${costText}</span>
+      <span class="orbit-btn-badge">×${orb.energyMult}E</span>
+    `;
+    if (i !== 0) btn.addEventListener('click', () => confirmMigration(i));
+    container.appendChild(btn);
+  }
+  updateOrbitButtons();
+}
+
+function updateOrbitButtons() {
+  for (let i = 0; i < ORBITS.length; i++) {
+    const btn = document.getElementById('orbit-btn-' + i);
+    if (!btn) continue;
+    btn.classList.remove('orbit-current','orbit-locked');
+    const cost = ORBIT_COSTS[i];
+    if (i === G.orbitIndex) {
+      btn.classList.add('orbit-current');
+    } else if (i < G.orbitIndex || (G.cash >= cost.cash && G.energy >= cost.energy && i === G.orbitIndex + 1)) {
+      // accessible (already visited or next affordable)
+    } else {
+      btn.classList.add('orbit-locked');
+    }
+  }
+}
+
+function confirmMigration(index) {
+  if (index <= G.orbitIndex) return;
+  if (index !== G.orbitIndex + 1) {
+    showAlert('⚠ Must migrate to next orbit first!', 'bad');
+    return;
+  }
+  const orb = ORBITS[index];
+  const cost = ORBIT_COSTS[index];
+  if (G.cash < cost.cash || G.energy < cost.energy) {
+    showAlert('⚠ Insufficient resources for migration!', 'bad');
+    return;
+  }
+  G.pendingModal = { type:'migrate', index };
+  document.getElementById('modal-title').textContent = `MIGRATE TO ${orb.name.toUpperCase()}`;
+  document.getElementById('modal-body').innerHTML = `
+    Move Station Alpha to orbit ${orb.name}.<br>
+    <em style="color:var(--text2);font-size:11px;">${orb.desc}</em>
+    <div class="modal-cost">
+      <div style="color:var(--text2);font-size:11px;margin-bottom:4px;">MIGRATION COST:</div>
+      <div class="modal-cost-row">
+        <span class="cost-item cost-cash">💰 ${fmt(cost.cash)} Credits</span>
+        <span class="cost-item cost-energy">⚡ ${fmt(cost.energy)} Energy</span>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--green);">
+      ↑ Energy rate: ×${orb.energyMult} (base ${orb.energyBase}/s)
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function doMigrate(index) {
+  const cost = ORBIT_COSTS[index];
+  G.cash -= cost.cash;
+  G.energy -= cost.energy;
+  G.orbitIndex = index;
+  const orb = ORBITS[index];
+  // All NPCs leave on migration
+  G.npcs = [];
+  addLog(`🚀 Migrated to ${orb.name} orbit!`, 'good');
+  showAlert(`🚀 Arrived at ${orb.name}! Energy ×${orb.energyMult}`, 'good');
+  spawnParticles(canvas.width/2, canvas.height/2, '105,240,174', 30);
+  updateOrbitButtons();
+  updateUI();
+  // Check win after reaching black hole
+  if (index === ORBITS.length - 1) {
+    addLog('🕳️ You orbit a Black Hole. The end... or the beginning.', 'warn');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI UPDATES
+// ═══════════════════════════════════════════════════════
+
+function updateUI() {
+  // Top bar
+  document.getElementById('energy-display').textContent = fmt(Math.floor(G.energy));
+  document.getElementById('energy-rate').textContent = `+${energyRate()}/s`;
+  document.getElementById('cash-display').textContent = fmt(Math.floor(G.cash));
+  document.getElementById('cash-rate').textContent = `+${fmt(cashRate())}/s`;
+  document.getElementById('orbit-name-top').textContent = ORBITS[G.orbitIndex].name.toUpperCase();
+  document.getElementById('orbit-icon').textContent = ORBITS[G.orbitIndex].icon;
+  document.getElementById('npc-count-top').textContent = `${G.npcs.length} VISITORS`;
+
+  // Stats
+  document.getElementById('stat-cap').textContent = `${G.npcs.length}/${maxNPCs()} NPCs`;
+  document.getElementById('stat-dock').textContent = G.modules.docking;
+  document.getElementById('stat-def').textContent = `${defenseRating()}%`;
+  document.getElementById('stat-storage').textContent = `${fmt(Math.floor(G.energy))}/${fmt(G.maxEnergy)}`;
+
+  // Visitors
+  const visitorList = document.getElementById('visitors-list');
+  visitorList.innerHTML = '';
+  if (G.npcs.length === 0) {
+    visitorList.innerHTML = '<div class="empty-msg">No visitors docked.<br>Add docking bays to attract ships.</div>';
+  } else {
+    for (const npc of G.npcs) {
+      const pct = Math.round((npc.timeLeft / npc.maxTime) * 100);
+      const el = document.createElement('div');
+      el.className = 'visitor-item';
+      el.innerHTML = `
+        <span class="visitor-icon">${npc.icon}</span>
+        <div class="visitor-info">
+          <div class="visitor-name">${npc.name}</div>
+          <div class="visitor-rate">+${npc.cashPerSec} 💰/s</div>
+          <div class="visitor-timer">Departs in ${npc.timeLeft}s</div>
+        </div>
+      `;
+      visitorList.appendChild(el);
+    }
+  }
+
+  updateUpgradeCards();
+  updateOrbitButtons();
+}
+
+function addLog(msg, type='info') {
+  G.log.unshift({ msg, type, time: G.ticks });
+  if (G.log.length > 30) G.log.pop();
+  const logList = document.getElementById('log-list');
+  logList.innerHTML = '';
+  for (const entry of G.log.slice(0, 20)) {
+    const el = document.createElement('div');
+    el.className = `log-item log-${entry.type}`;
+    el.innerHTML = `<span class="log-time">[${entry.time}s]</span>${entry.msg}`;
+    logList.appendChild(el);
+  }
+}
+
+let alertTimer = null;
+function showAlert(msg, type='bad') {
+  const el = document.getElementById('event-alert');
+  el.textContent = msg;
+  el.className = 'show' + (type === 'good' ? ' good' : '');
+  if (alertTimer) clearTimeout(alertTimer);
+  alertTimer = setTimeout(() => { el.className = ''; }, 3500);
+}
+
+function fmt(n) {
+  if (n === undefined || n === null) return '0';
+  n = Math.floor(n);
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return n.toLocaleString();
+  return n.toString();
+}
+
+function fmtShort(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toString();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL HANDLERS
+// ═══════════════════════════════════════════════════════
+
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('modal-overlay').classList.remove('active');
+  G.pendingModal = null;
+});
+
+document.getElementById('modal-confirm').addEventListener('click', () => {
+  document.getElementById('modal-overlay').classList.remove('active');
+  if (G.pendingModal && G.pendingModal.type === 'migrate') {
+    doMigrate(G.pendingModal.index);
+  }
+  G.pendingModal = null;
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+
+initCanvas();
+buildUpgradeList();
+buildOrbitButtons();
+addLog('Station Alpha online. Earth orbit established.', 'good');
+addLog('Build Solar Collectors to harvest energy.', 'info');
+addLog('Docking Bays attract alien visitors who pay in cash.', 'info');
+updateUI();
+
+// Game loop: 1 tick per second
+setInterval(gameTick, 1000);
+</script>
+</body>
+</html>
